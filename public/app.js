@@ -402,6 +402,7 @@ function confirmAddItem() {
     hideAddItemModal();
 }
 
+// 修复后的价格加载函数（支持单服 & 数据中心）
 // // 修复后的价格加载函数（支持单服 & 数据中心）
 // async function loadCraftingListPrices() {
 //     console.log(`=== loadCraftingListPrices called with ${craftingList.length} items ===`);
@@ -558,6 +559,7 @@ async function loadCraftingListPrices() {
                 if (data.items) {
                     marketData = data.items[item.id] || data.items[item.id.toString()];
                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                 } else if (data.itemID) {
                     if (data.itemID === item.id || data.itemID === item.id.toString() ||
                         item.id === parseInt(data.itemID)) {
@@ -567,11 +569,14 @@ async function loadCraftingListPrices() {
                 } else if (craftingList.length === 1) {
                     marketData = data;
                     marketData.isDatacenter = !data.worldName;
+                    marketData.isDatacenter = !data.worldName;
                 } else if (data[item.id]) {
                     marketData = data[item.id];
                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                 } else if (data[item.id.toString()]) {
                     marketData = data[item.id.toString()];
+                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                     if (marketData) marketData.isDatacenter = !marketData.worldName;
                 }
 
@@ -669,6 +674,7 @@ async function loadCraftingListPrices() {
             console.groupEnd();
 
         } else {
+            console.error(`[PriceLoader] API request failed with status: ${response.status}`);
             console.error(`[PriceLoader] API request failed with status: ${response.status}`);
             const errorText = await response.text();
             console.error('[PriceLoader] Error response:', errorText);
@@ -881,6 +887,20 @@ function calculateOptimalPrice(marketData, requiredQuantity) {
         return typeof price === 'number' && price > 0;
     });
 
+    console.log("[PriceCalc] Valid listings count:", validListings.length);
+    if (validListings.length > 0) {
+        console.log("[PriceCalc] Cheapest listing:", {
+            price: validListings[0].pricePerUnit,
+            quantity: validListings[0].quantity,
+            world: validListings[0].worldName || "单服"
+        });
+        console.log("[PriceCalc] Most expensive listing:", {
+            price: validListings[validListings.length - 1].pricePerUnit,
+            quantity: validListings[validListings.length - 1].quantity,
+            world: validListings[validListings.length - 1].worldName || "单服"
+        });
+    }
+
     if (validListings.length === 0) {
         const fallbackPrice = marketData.currentAveragePrice || 0;
         return {
@@ -901,7 +921,7 @@ function calculateOptimalPrice(marketData, requiredQuantity) {
         return priceA - priceB;
     });
 
-    // 计算最优购买策略
+    // 逐个 listing 买货计算最优成本
     let remainingQuantity = requiredQuantity;
     let totalCost = 0;
     const breakdown = [];
