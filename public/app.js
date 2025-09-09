@@ -87,6 +87,22 @@ async function loadServers() {
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = datacenterNameMap[datacenter] || datacenter;
                 
+                // Add datacenter option first (for Chinese datacenters)
+                if (['陆行鸟', '莫古力', '猫小胖', '豆豆柴'].includes(datacenter)) {
+                    const dcOption = document.createElement('option');
+                    dcOption.value = datacenter;
+                    dcOption.textContent = `整个${datacenterNameMap[datacenter]}`;
+                    dcOption.style.fontWeight = 'bold';
+                    dcOption.style.color = '#2563eb';
+                    optgroup.appendChild(dcOption);
+                    
+                    // Add separator
+                    const separator = document.createElement('option');
+                    separator.disabled = true;
+                    separator.textContent = '─────────────';
+                    optgroup.appendChild(separator);
+                }
+                
                 servers.forEach(server => {
                     const option = document.createElement('option');
                     option.value = server;
@@ -449,7 +465,9 @@ async function loadCraftingListPrices() {
     
     try {
         const itemIds = craftingList.map(item => item.id).join(',');
-        const response = await fetch(`https://universalis.app/api/v2/${currentServer}/${itemIds}`, {
+        // Use the selected server/datacenter for market data
+        const marketTarget = currentServer;
+        const response = await fetch(`https://universalis.app/api/v2/${marketTarget}/${itemIds}`, {
             headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
         });
         
@@ -647,9 +665,11 @@ async function showItemDetails(itemId) {
             
             // Market data
             if (market) {
+                const marketTitle = market.is_datacenter ? `市场数据 (整个${market.server}数据中心)` : `市场数据 (${market.server})`;
                 html += `
                     <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                        <h5 class="font-semibold mb-3">市场数据 (${market.server})</h5>
+                        <h5 class="font-semibold mb-3">${marketTitle}</h5>
+                        ${market.is_datacenter ? '<p class="text-sm text-blue-600 mb-3"><i class="fas fa-info-circle mr-1"></i>显示整个数据中心的市场数据</p>' : ''}
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             <div class="text-center">
                                 <p class="text-sm text-gray-600">平均价格</p>
@@ -679,6 +699,7 @@ async function showItemDetails(itemId) {
                                             <th class="px-2 py-1 text-center">数量</th>
                                             <th class="px-2 py-1 text-center">品质</th>
                                             <th class="px-2 py-1 text-left">雇员</th>
+                                            ${market.is_datacenter ? '<th class="px-2 py-1 text-left">服务器</th>' : ''}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -692,6 +713,7 @@ async function showItemDetails(itemId) {
                                                     </span>
                                                 </td>
                                                 <td class="px-2 py-1 text-left">${listing.retainer}</td>
+                                                ${market.is_datacenter ? `<td class="px-2 py-1 text-left">${listing.world || '-'}</td>` : ''}
                                             </tr>
                                         `).join('')}
                                     </tbody>
