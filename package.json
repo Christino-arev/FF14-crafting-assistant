@@ -1,0 +1,16 @@
+{
+  "name": "ff14-crafting-assistant-cf",
+  "version": "1.0.0",
+  "description": "FF14 Crafting Assistant for Cloudflare Pages/Workers",
+  "main": "functions/api/[[path]].js",
+  "scripts": {
+    "dev": "wrangler pages dev public --compatibility-date=2024-01-01",
+    "build": "echo 'Build complete'",
+    "deploy": "wrangler pages deploy public"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "type": "module"
+}

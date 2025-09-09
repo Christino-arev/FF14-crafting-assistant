@@ -1,0 +1,10 @@
+name = "ff14-crafting-assistant"
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "ff14-crafting-assistant"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
