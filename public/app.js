@@ -461,18 +461,24 @@ function calculateOptimalPrice(marketData, requiredQuantity) {
 
 // Load market prices for crafting list items
 async function loadCraftingListPrices() {
-    if (craftingList.length === 0) return;
+    console.log(`loadCraftingListPrices called with ${craftingList.length} items`);
+    if (craftingList.length === 0) {
+        console.log('Crafting list is empty, returning');
+        return;
+    }
     
     try {
         const itemIds = craftingList.map(item => item.id).join(',');
         // Use the selected server/datacenter for market data
         const marketTarget = currentServer;
+        console.log(`Loading prices for items ${itemIds} from ${marketTarget}`);
         const response = await fetch(`https://universalis.app/api/v2/${marketTarget}/${itemIds}`, {
             headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
         });
         
         if (response.ok) {
             const data = await response.json();
+            console.log(`Received data:`, data);
             
             craftingList.forEach(item => {
                 // Handle both multi-item response format and single-item response format
