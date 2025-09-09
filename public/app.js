@@ -1094,27 +1094,6 @@ function hideAnalysisResults() {
     document.getElementById('analysisResults').classList.add('hidden');
 }
 
-// Test function for debugging price loading
-async function testPriceLoading() {
-    console.log('=== Test Price Loading ===');
-    console.log(`Current server: ${currentServer}`);
-    console.log(`Crafting list length: ${craftingList.length}`);
-    
-    if (craftingList.length === 0) {
-        alert('制作清单为空！请先添加一些物品。');
-        return;
-    }
-    
-    // Add a test item if list is empty
-    if (craftingList.length === 0) {
-        craftingList.push({ id: 5057, name: '黑铁锭', quantity: 1, icon_url: '' });
-        updateCraftingListDisplay();
-    }
-    
-    console.log('Calling loadCraftingListPrices...');
-    await loadCraftingListPrices();
-    console.log('loadCraftingListPrices completed');
-}
 
 function hideItemDetails() {
     document.getElementById('itemDetailsModal').classList.add('hidden');
