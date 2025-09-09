@@ -1,11 +1,11 @@
-name = "ff14-crafting-assistant"
+name = "ff14markethelper"
 compatibility_date = "2024-01-01"
 
 [assets]
 directory = "./public"
 
 [env.production]
-name = "ff14-crafting-assistant"
+name = "ff14markethelper"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE"
