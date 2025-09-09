@@ -26,6 +26,7 @@ function setupEventListeners() {
     // Crafting list functionality
     document.getElementById('addItemBtn').addEventListener('click', showAddItemModal);
     document.getElementById('analyzeBtn').addEventListener('click', analyzeCraftingList);
+    document.getElementById('testPriceBtn').addEventListener('click', testPriceLoading);
     document.getElementById('clearListBtn').addEventListener('click', clearCraftingList);
 
     // Modal functionality
@@ -50,6 +51,21 @@ async function loadServers() {
             
             // Server name mapping
             const serverNameMap = {
+                // 数据中心
+                '陆行鸟': '🌐 陆行鸟数据中心',
+                '莫古力': '🌐 莫古力数据中心',
+                '猫小胖': '🌐 猫小胖数据中心',
+                '豆豆柴': '🌐 豆豆柴数据中心',
+                'Aether': '🌐 Entire Aether Datacenter',
+                'Crystal': '🌐 Entire Crystal Datacenter',
+                'Primal': '🌐 Entire Primal Datacenter',
+                'Dynamis': '🌐 Entire Dynamis Datacenter',
+                'Elemental': '🌐 Entire Elemental Datacenter',
+                'Gaia': '🌐 Entire Gaia Datacenter',
+                'Light': '🌐 Entire Light Datacenter',
+                'Mana': '🌐 Entire Mana Datacenter',
+                'Materia': '🌐 Entire Materia Datacenter',
+                'Meteor': '🌐 Entire Meteor Datacenter',
                 // 中国服务器
                 'HongYuHai': '红玉海', 'ShenYiZhiDi': '神意之地', 'LaNuoXiYa': '拉诺西亚',
                 'HuanYingQunDao': '幻影群岛', 'MengYaChi': '萌芽池', 'YuZhouHeYin': '宇宙和音',
@@ -86,22 +102,6 @@ async function loadServers() {
                 const servers = data.servers[datacenter];
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = datacenterNameMap[datacenter] || datacenter;
-                
-                // Add datacenter option first (for Chinese datacenters)
-                if (['陆行鸟', '莫古力', '猫小胖', '豆豆柴'].includes(datacenter)) {
-                    const dcOption = document.createElement('option');
-                    dcOption.value = datacenter;
-                    dcOption.textContent = `整个${datacenterNameMap[datacenter]}`;
-                    dcOption.style.fontWeight = 'bold';
-                    dcOption.style.color = '#2563eb';
-                    optgroup.appendChild(dcOption);
-                    
-                    // Add separator
-                    const separator = document.createElement('option');
-                    separator.disabled = true;
-                    separator.textContent = '─────────────';
-                    optgroup.appendChild(separator);
-                }
                 
                 servers.forEach(server => {
                     const option = document.createElement('option');
@@ -652,6 +652,28 @@ function hideAnalysisResults() {
     document.getElementById('analysisResults').classList.add('hidden');
 }
 
+// Test function for debugging price loading
+async function testPriceLoading() {
+    console.log('=== Test Price Loading ===');
+    console.log(`Current server: ${currentServer}`);
+    console.log(`Crafting list length: ${craftingList.length}`);
+    
+    if (craftingList.length === 0) {
+        alert('制作清单为空！请先添加一些物品。');
+        return;
+    }
+    
+    // Add a test item if list is empty
+    if (craftingList.length === 0) {
+        craftingList.push({ id: 5057, name: '黑铁锭', quantity: 1, icon_url: '' });
+        updateCraftingListDisplay();
+    }
+    
+    console.log('Calling loadCraftingListPrices...');
+    await loadCraftingListPrices();
+    console.log('loadCraftingListPrices completed');
+}
+
 // Item details modal functions
 async function showItemDetails(itemId) {
     const modal = document.getElementById('itemDetailsModal');
@@ -697,11 +719,11 @@ async function showItemDetails(itemId) {
             
             // Market data
             if (market) {
-                const marketTitle = market.is_datacenter ? `市场数据 (整个${market.server}数据中心)` : `市场数据 (${market.server})`;
+                const marketTitle = market.is_datacenter ? `市场数据 (${market.server}数据中心)` : `市场数据 (${market.server})`;
                 html += `
                     <div class="bg-gray-50 rounded-lg p-4 mb-4">
                         <h5 class="font-semibold mb-3">${marketTitle}</h5>
-                        ${market.is_datacenter ? '<p class="text-sm text-blue-600 mb-3"><i class="fas fa-info-circle mr-1"></i>显示整个数据中心的市场数据</p>' : ''}
+                        ${market.is_datacenter ? '<p class="text-sm text-blue-600 mb-3"><i class="fas fa-info-circle mr-1"></i>显示数据中心的市场数据</p>' : ''}
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             <div class="text-center">
                                 <p class="text-sm text-gray-600">平均价格</p>
