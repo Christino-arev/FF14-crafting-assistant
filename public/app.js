@@ -478,17 +478,12 @@ async function loadCraftingListPrices() {
                 // Handle both multi-item response format and single-item response format
                 let marketData = null;
                 
-                if (data.items && data.items[item.id.toString()]) {
+                if (data.items) {
                     // Multi-item response format: {items: {itemId: data}}
-                    marketData = data.items[item.id.toString()];
-                } else if (data.items && data.items[item.id]) {
-                    // Multi-item response format with numeric key
-                    marketData = data.items[item.id];
-                } else if (data.itemID && (data.itemID == item.id || data.itemID === item.id)) {
+                    // Try both string and numeric keys
+                    marketData = data.items[item.id] || data.items[item.id.toString()];
+                } else if (data.itemID) {
                     // Single-item response format: direct data object
-                    marketData = data;
-                } else if (craftingList.length === 1 && data.itemID) {
-                    // Special case: single item in crafting list, API returns single-item format
                     marketData = data;
                 }
                 
@@ -496,6 +491,7 @@ async function loadCraftingListPrices() {
                 const totalElement = document.getElementById(`total-${item.id}`);
                 
                 if (marketData && priceElement && totalElement) {
+                    console.log(`Processing item ${item.id}: found market data with ${marketData.listings?.length || 0} listings`);
                     const priceCalc = calculateOptimalPrice(marketData, item.quantity);
                     
                     priceElement.innerHTML = `最优: ${priceCalc.averagePrice.toLocaleString()} | 最低: ${priceCalc.minPrice.toLocaleString()}`;
@@ -507,7 +503,9 @@ async function loadCraftingListPrices() {
                     console.log('Data structure:', Object.keys(data));
                     console.log('Has items:', !!data.items);
                     console.log('Has itemID:', !!data.itemID);
-                    console.log('ItemID value:', data.itemID);
+                    if (data.items) {
+                        console.log('Items keys:', Object.keys(data.items));
+                    }
                     console.log('Item ID type:', typeof item.id);
                     console.log('Data ItemID type:', typeof data.itemID);
                     if (data.items) {
