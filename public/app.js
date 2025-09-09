@@ -403,9 +403,9 @@ function confirmAddItem() {
     hideAddItemModal();
 }
 
-// 修复后的价格加载函数
+// 修复后的价格加载函数（支持单服 & 数据中心）
 async function loadCraftingListPrices() {
-    console.log(`loadCraftingListPrices called with ${craftingList.length} items`);
+    console.log(`=== loadCraftingListPrices called with ${craftingList.length} items ===`);
     if (craftingList.length === 0) {
         console.log('Crafting list is empty, returning');
         return;
@@ -414,7 +414,7 @@ async function loadCraftingListPrices() {
     try {
         const itemIds = craftingList.map(item => item.id).join(',');
         const marketTarget = currentServer;
-        console.log(`Loading prices for items ${itemIds} from ${marketTarget}`);
+        console.log(`[PriceLoader] Fetching items [${itemIds}] from target: ${marketTarget}`);
         
         const response = await fetch(`https://universalis.app/api/v2/${marketTarget}/${itemIds}`, {
             headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
@@ -422,39 +422,41 @@ async function loadCraftingListPrices() {
         
         if (response.ok) {
             const data = await response.json();
-            console.log(`Received data:`, data);
+            console.log(`[PriceLoader] Raw API response:`, data);
             
-            // 处理不同的响应格式
             craftingList.forEach(item => {
                 let marketData = null;
-                
-                // 处理不同的响应格式
+
+                // 判断数据结构
                 if (data.items) {
-                    // 多物品响应格式: {items: {itemId: data}}
+                    // 多物品格式
                     marketData = data.items[item.id] || data.items[item.id.toString()];
+                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                 } else if (data.itemID) {
-                    // 单物品响应格式: 检查itemID是否匹配
-                    if (data.itemID === item.id || data.itemID === item.id.toString() || 
+                    // 单物品（可能是单服，也可能是整个数据中心）
+                    if (data.itemID === item.id || data.itemID === item.id.toString() ||
                         item.id === parseInt(data.itemID)) {
                         marketData = data;
+                        // 如果没有 worldName，说明是数据中心返回
+                        marketData.isDatacenter = !data.worldName;
                     }
                 } else if (craftingList.length === 1) {
-                    // 单物品查询的特殊情况，直接使用整个响应
                     marketData = data;
+                    marketData.isDatacenter = !data.worldName;
                 } else if (data[item.id]) {
-                    // 直接以物品ID为key的格式
                     marketData = data[item.id];
+                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                 } else if (data[item.id.toString()]) {
-                    // 以字符串ID为key的格式
                     marketData = data[item.id.toString()];
+                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                 }
                 
                 const priceElement = document.getElementById(`price-${item.id}`);
                 const totalElement = document.getElementById(`total-${item.id}`);
                 
                 if (marketData && priceElement && totalElement) {
-                    console.log(`Processing item ${item.id} (${item.name}): found market data`);
-                    console.log(`Market data structure:`, {
+                    console.log(`[PriceLoader] ✅ Item ${item.id} (${item.name}) data found. isDatacenter=${marketData.isDatacenter}`);
+                    console.log(`[PriceLoader] Structure:`, {
                         hasListings: !!marketData.listings,
                         listingsCount: marketData.listings?.length || 0,
                         currentAveragePrice: marketData.currentAveragePrice,
@@ -464,34 +466,21 @@ async function loadCraftingListPrices() {
                     
                     const priceCalc = calculateOptimalPrice(marketData, item.quantity);
                     
-                    // 检查价格是否有效
                     if (priceCalc.averagePrice > 0) {
                         priceElement.innerHTML = `最优: ${priceCalc.averagePrice.toLocaleString()} | 最低: ${priceCalc.minPrice.toLocaleString()}`;
                         priceElement.className = 'text-xs text-blue-600';
                         totalElement.innerHTML = `总价: ${priceCalc.totalCost.toLocaleString()}`;
                         totalElement.className = 'text-xs text-green-600';
+                        console.log(`[PriceLoader] 💰 Final price for ${item.name}: avg=${priceCalc.averagePrice}, min=${priceCalc.minPrice}, total=${priceCalc.totalCost}`);
                     } else {
                         priceElement.innerHTML = '暂无市场数据';
                         priceElement.className = 'text-xs text-gray-500';
                         totalElement.innerHTML = '总价: -';
                         totalElement.className = 'text-xs text-gray-500';
+                        console.warn(`[PriceLoader] ⚠️ No valid price calculated for ${item.name}`);
                     }
                 } else {
-                    console.log(`No market data for item ${item.id} (${item.name})`);
-                    console.log('Response structure analysis:', {
-                        hasItems: !!data.items,
-                        hasItemID: !!data.itemID,
-                        responseItemID: data.itemID,
-                        targetItemID: item.id,
-                        itemIdType: typeof item.id,
-                        responseKeys: Object.keys(data)
-                    });
-                    
-                    if (data.items) {
-                        console.log('Items keys:', Object.keys(data.items));
-                        console.log('Looking for keys:', [item.id, item.id.toString()]);
-                    }
-                    
+                    console.error(`[PriceLoader] ❌ No market data found for item ${item.id} (${item.name})`);
                     if (priceElement && totalElement) {
                         priceElement.innerHTML = '数据加载失败';
                         priceElement.className = 'text-xs text-red-500';
@@ -501,11 +490,10 @@ async function loadCraftingListPrices() {
                 }
             });
         } else {
-            console.error(`API request failed with status: ${response.status}`);
+            console.error(`[PriceLoader] API request failed with status: ${response.status}`);
             const errorText = await response.text();
-            console.error('Error response:', errorText);
+            console.error('[PriceLoader] Error response:', errorText);
             
-            // 显示API错误
             craftingList.forEach(item => {
                 const priceElement = document.getElementById(`price-${item.id}`);
                 const totalElement = document.getElementById(`total-${item.id}`);
@@ -520,7 +508,7 @@ async function loadCraftingListPrices() {
             });
         }
     } catch (error) {
-        console.error('Failed to load market prices:', error);
+        console.error('[PriceLoader] Failed to load market prices:', error);
         craftingList.forEach(item => {
             const priceElement = document.getElementById(`price-${item.id}`);
             const totalElement = document.getElementById(`total-${item.id}`);
@@ -536,29 +524,39 @@ async function loadCraftingListPrices() {
     }
 }
 
-// 改进的价格计算函数，更好地处理缺失数据
+
+// 改进的价格计算函数，更好地处理缺失数据 + 日志输出
 function calculateOptimalPrice(marketData, requiredQuantity) {
-    // 检查数据有效性
+    console.log("=== [PriceCalc] Start calculateOptimalPrice ===");
+    console.log("[PriceCalc] Required quantity:", requiredQuantity);
+    console.log("[PriceCalc] Market data snapshot:", {
+        currentAveragePrice: marketData.currentAveragePrice,
+        minPrice: marketData.minPrice,
+        maxPrice: marketData.maxPrice,
+        listingsCount: marketData.listings?.length || 0,
+        isDatacenter: marketData.isDatacenter || false
+    });
+
     if (!marketData) {
+        console.warn("[PriceCalc] ❌ marketData is null/undefined");
         return { averagePrice: 0, totalCost: 0, minPrice: 0 };
     }
     
-    // 获取基础价格信息
+    // 基础价格信息
     const currentAvgPrice = marketData.currentAveragePrice || 0;
     const minPrice = marketData.minPrice || 0;
     const maxPrice = marketData.maxPrice || 0;
     
-    console.log(`Price calculation for quantity ${requiredQuantity}:`, {
+    console.log("[PriceCalc] Base prices:", {
         currentAvgPrice,
         minPrice,
-        maxPrice,
-        hasListings: !!marketData.listings,
-        listingsCount: marketData.listings?.length || 0
+        maxPrice
     });
     
-    // 如果没有在售商品，使用历史平均价格
+    // 如果没有 listings，就退回到历史价格
     if (!marketData.listings || marketData.listings.length === 0) {
         const fallbackPrice = currentAvgPrice || minPrice || 0;
+        console.log("[PriceCalc] No listings, fallback price:", fallbackPrice);
         return {
             averagePrice: fallbackPrice,
             totalCost: fallbackPrice * requiredQuantity,
@@ -566,13 +564,28 @@ function calculateOptimalPrice(marketData, requiredQuantity) {
         };
     }
 
-    // 过滤并排序在售商品
+    // 过滤并排序 listings
     const validListings = marketData.listings
         .filter(listing => listing && listing.pricePerUnit > 0)
         .sort((a, b) => a.pricePerUnit - b.pricePerUnit);
 
+    console.log("[PriceCalc] Valid listings count:", validListings.length);
+    if (validListings.length > 0) {
+        console.log("[PriceCalc] Cheapest listing:", {
+            price: validListings[0].pricePerUnit,
+            quantity: validListings[0].quantity,
+            world: validListings[0].worldName || "单服"
+        });
+        console.log("[PriceCalc] Most expensive listing:", {
+            price: validListings[validListings.length - 1].pricePerUnit,
+            quantity: validListings[validListings.length - 1].quantity,
+            world: validListings[validListings.length - 1].worldName || "单服"
+        });
+    }
+
     if (validListings.length === 0) {
         const fallbackPrice = currentAvgPrice || minPrice || 0;
+        console.warn("[PriceCalc] ⚠️ No valid listings after filtering, using fallback:", fallbackPrice);
         return {
             averagePrice: fallbackPrice,
             totalCost: fallbackPrice * requiredQuantity,
@@ -580,7 +593,7 @@ function calculateOptimalPrice(marketData, requiredQuantity) {
         };
     }
 
-    // 计算最优购买策略
+    // 逐个 listing 买货计算最优成本
     let remainingQuantity = requiredQuantity;
     let totalCost = 0;
 
@@ -590,18 +603,29 @@ function calculateOptimalPrice(marketData, requiredQuantity) {
         const quantityToBuy = Math.min(remainingQuantity, listing.quantity || 1);
         const cost = quantityToBuy * listing.pricePerUnit;
         
+        console.log(`[PriceCalc] Buying ${quantityToBuy} @ ${listing.pricePerUnit} (total ${cost}) from ${listing.worldName || "单服"}`);
+        
         totalCost += cost;
         remainingQuantity -= quantityToBuy;
     }
 
-    // 如果仍需更多物品，使用最高价格
+    // 如果还不够，就用最高价补齐
     if (remainingQuantity > 0) {
         const highestPrice = validListings[validListings.length - 1].pricePerUnit;
-        totalCost += remainingQuantity * highestPrice;
+        const extraCost = remainingQuantity * highestPrice;
+        totalCost += extraCost;
+        console.warn(`[PriceCalc] ⚠️ Not enough listings, filled ${remainingQuantity} with highest price ${highestPrice}, cost=${extraCost}`);
     }
 
     const averagePrice = totalCost / requiredQuantity;
     const calculatedMinPrice = validListings[0].pricePerUnit;
+
+    console.log("[PriceCalc] ✅ Final result:", {
+        averagePrice: Math.round(averagePrice * 100) / 100,
+        totalCost: Math.round(totalCost),
+        minPrice: calculatedMinPrice
+    });
+    console.log("=== [PriceCalc] End calculateOptimalPrice ===");
 
     return {
         averagePrice: Math.round(averagePrice * 100) / 100,
