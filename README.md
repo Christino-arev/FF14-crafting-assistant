@@ -1,6 +1,6 @@
-# FF14 市场助手
+# FF14 Crafting Assistant
 
-一个现代化的 FF14 制作助手 Web 应用，可部署到 Cloudflare Pages/Workers，提供物品搜索、配方分析和市场价格查询功能。
+一个 FF14 配方和市场价格查询助手，可部署到 Cloudflare Pages，提供物品搜索、配方分析和市场价格查询功能。
 
 ## ✨ 功能特性
 
@@ -32,7 +32,6 @@
 1. **克隆项目**
    ```bash
    git clone <your-repo-url>
-   cd cloudflare-ff14-assistant
    ```
 
 2. **安装依赖**
