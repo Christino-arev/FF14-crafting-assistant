@@ -1,4 +1,4 @@
-# FF14 制作助手 - Cloudflare 版本
+# FF14 市场助手
 
 一个现代化的 FF14 制作助手 Web 应用，可部署到 Cloudflare Pages/Workers，提供物品搜索、配方分析和市场价格查询功能。
 
