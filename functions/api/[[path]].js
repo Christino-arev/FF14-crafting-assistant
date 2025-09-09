@@ -164,7 +164,7 @@ async function handleServers(request, env) {
                     success: true,
                     servers: servers,
                     datacenters: datacenters,
-                    default_server: "HongYuHai"
+                    default_server: "YinLeiHu2"
                 }), {
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -176,10 +176,10 @@ async function handleServers(request, env) {
 
     // Fallback to static server list
     const servers = {
-        "陆行鸟": ["陆行鸟", "HongYuHai", "ShenYiZhiDi", "LaNuoXiYa", "HuanYingQunDao", "MengYaChi", "YuZhouHeYin", "WoXianXiRan", "ChenXiWangZuo"],
-        "莫古力": ["莫古力", "BaiYinXiang", "BaiJinHuanXiang", "ShenQuanHen", "ChaoFengTing", "LvRenZhanQiao", "FuXiaoZhiJian", "Longchaoshendian", "MengYuBaoJing"],
-        "猫小胖": ["猫小胖", "ZiShuiZhanQiao", "YanXia", "JingYuZhuangYuan", "MoDuNa", "HaiMaoChaWu", "RouFengHaiWan", "HuPoYuan"],
-        "豆豆柴": ["豆豆柴", "ShuiJingTa2", "YinLeiHu2", "TaiYangHaiAn2", "YiXiuJiaDe2", "HongChaChuan2"],
+        "陆行鸟": ["luxingniao", "HongYuHai", "ShenYiZhiDi", "LaNuoXiYa", "HuanYingQunDao", "MengYaChi", "YuZhouHeYin", "WoXianXiRan", "ChenXiWangZuo"],
+        "莫古力": ["moguli", "BaiYinXiang", "BaiJinHuanXiang", "ShenQuanHen", "ChaoFengTing", "LvRenZhanQiao", "FuXiaoZhiJian", "Longchaoshendian", "MengYuBaoJing"],
+        "猫小胖": ["maoxiaopang", "ZiShuiZhanQiao", "YanXia", "JingYuZhuangYuan", "MoDuNa", "HaiMaoChaWu", "RouFengHaiWan", "HuPoYuan"],
+        "豆豆柴": ["doudouchai", "ShuiJingTa2", "YinLeiHu2", "TaiYangHaiAn2", "YiXiuJiaDe2", "HongChaChuan2"],
         "Aether": ["Aether", "Adamantoise", "Cactuar", "Faerie", "Gilgamesh", "Jenova", "Midgardsormr", "Sargatanas", "Siren"],
         "Crystal": ["Crystal", "Balmung", "Brynhildr", "Coeurl", "Diabolos", "Goblin", "Malboro", "Mateus", "Zalera"],
         "Primal": ["Primal", "Behemoth", "Excalibur", "Exodus", "Famfrit", "Hyperion", "Lamia", "Leviathan", "Ultros"],
@@ -214,7 +214,7 @@ async function handleServers(request, env) {
         success: true,
         servers: servers,
         datacenters: datacenters,
-        default_server: "HongYuHai"
+        default_server: "YinLeiHu2"
     }), {
         headers: { 'Content-Type': 'application/json' }
     });
@@ -278,7 +278,7 @@ async function handleSearch(request, env) {
 async function handleItemDetails(request, env) {
     const url = new URL(request.url);
     const itemId = url.pathname.split('/').pop();
-    const server = url.searchParams.get('server') || 'HongYuHai';
+    const server = url.searchParams.get('server') || 'YinLeiHu2';
 
     try {
         // Get item details from CafeMaker
@@ -553,6 +553,7 @@ async function handleAnalyzeCraftingList(request, env) {
             try {
                 const materialIds = materials.map(m => m.id).join(',');
                 // Support both individual servers and datacenters
+                
                 const marketResponse = await fetch(`https://universalis.app/api/v2/${server}/${materialIds}`, {
                     headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
                 });
@@ -563,6 +564,7 @@ async function handleAnalyzeCraftingList(request, env) {
                     materials.forEach(material => {
                         const itemMarketData = marketData.items?.[material.id] || marketData;
                         if (itemMarketData) {
+                            
                             const priceCalculation = calculateOptimalPrice(itemMarketData, material.quantity);
                             material.unit_price = priceCalculation.averagePrice;
                             material.total_price = priceCalculation.totalCost;
