@@ -1,3 +1,4 @@
 name = "ff14markethelper"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "./public"
+CLOUDFLARE_API_TOKEN = W1der3n0on0hGMO3r64W0Eu3TLBTLA_3Hc_Dm_Fxn
