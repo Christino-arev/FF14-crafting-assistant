@@ -403,63 +403,7 @@ function confirmAddItem() {
     hideAddItemModal();
 }
 
-// Smart price calculation function (client-side)
-function calculateOptimalPrice(marketData, requiredQuantity) {
-    // If no listings available, fall back to average price
-    if (!marketData.listings || marketData.listings.length === 0) {
-        const fallbackPrice = marketData.currentAveragePrice || marketData.minPrice || 0;
-        return {
-            averagePrice: fallbackPrice,
-            totalCost: fallbackPrice * requiredQuantity,
-            minPrice: marketData.minPrice || fallbackPrice
-        };
-    }
-
-    // Sort listings by price (ascending)
-    const sortedListings = marketData.listings
-        .filter(listing => listing.pricePerUnit > 0)
-        .sort((a, b) => a.pricePerUnit - b.pricePerUnit);
-
-    if (sortedListings.length === 0) {
-        const fallbackPrice = marketData.currentAveragePrice || 0;
-        return {
-            averagePrice: fallbackPrice,
-            totalCost: fallbackPrice * requiredQuantity,
-            minPrice: marketData.minPrice || fallbackPrice
-        };
-    }
-
-    // Calculate optimal purchase strategy
-    let remainingQuantity = requiredQuantity;
-    let totalCost = 0;
-
-    for (const listing of sortedListings) {
-        if (remainingQuantity <= 0) break;
-
-        const quantityToBuy = Math.min(remainingQuantity, listing.quantity);
-        const cost = quantityToBuy * listing.pricePerUnit;
-        
-        totalCost += cost;
-        remainingQuantity -= quantityToBuy;
-    }
-
-    // If we still need more items, use the highest price from available listings
-    if (remainingQuantity > 0) {
-        const highestPrice = sortedListings[sortedListings.length - 1].pricePerUnit;
-        totalCost += remainingQuantity * highestPrice;
-    }
-
-    const averagePrice = totalCost / requiredQuantity;
-    const minPrice = sortedListings[0].pricePerUnit;
-
-    return {
-        averagePrice: Math.round(averagePrice * 100) / 100,
-        totalCost: Math.round(totalCost),
-        minPrice: minPrice
-    };
-}
-
-// Load market prices for crafting list items
+// 修复后的价格加载函数
 async function loadCraftingListPrices() {
     console.log(`loadCraftingListPrices called with ${craftingList.length} items`);
     if (craftingList.length === 0) {
@@ -469,9 +413,9 @@ async function loadCraftingListPrices() {
     
     try {
         const itemIds = craftingList.map(item => item.id).join(',');
-        // Use the selected server/datacenter for market data
         const marketTarget = currentServer;
         console.log(`Loading prices for items ${itemIds} from ${marketTarget}`);
+        
         const response = await fetch(`https://universalis.app/api/v2/${marketTarget}/${itemIds}`, {
             headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
         });
@@ -480,45 +424,98 @@ async function loadCraftingListPrices() {
             const data = await response.json();
             console.log(`Received data:`, data);
             
+            // 处理不同的响应格式
             craftingList.forEach(item => {
-                // Handle both multi-item response format and single-item response format
                 let marketData = null;
                 
+                // 处理不同的响应格式
                 if (data.items) {
-                    // Multi-item response format: {items: {itemId: data}}
-                    // Try both string and numeric keys
+                    // 多物品响应格式: {items: {itemId: data}}
                     marketData = data.items[item.id] || data.items[item.id.toString()];
                 } else if (data.itemID) {
-                    // Single-item response format: direct data object
+                    // 单物品响应格式: 检查itemID是否匹配
+                    if (data.itemID === item.id || data.itemID === item.id.toString() || 
+                        item.id === parseInt(data.itemID)) {
+                        marketData = data;
+                    }
+                } else if (craftingList.length === 1) {
+                    // 单物品查询的特殊情况，直接使用整个响应
                     marketData = data;
+                } else if (data[item.id]) {
+                    // 直接以物品ID为key的格式
+                    marketData = data[item.id];
+                } else if (data[item.id.toString()]) {
+                    // 以字符串ID为key的格式
+                    marketData = data[item.id.toString()];
                 }
                 
                 const priceElement = document.getElementById(`price-${item.id}`);
                 const totalElement = document.getElementById(`total-${item.id}`);
                 
                 if (marketData && priceElement && totalElement) {
-                    console.log(`Processing item ${item.id}: found market data with ${marketData.listings?.length || 0} listings`);
+                    console.log(`Processing item ${item.id} (${item.name}): found market data`);
+                    console.log(`Market data structure:`, {
+                        hasListings: !!marketData.listings,
+                        listingsCount: marketData.listings?.length || 0,
+                        currentAveragePrice: marketData.currentAveragePrice,
+                        minPrice: marketData.minPrice,
+                        maxPrice: marketData.maxPrice
+                    });
+                    
                     const priceCalc = calculateOptimalPrice(marketData, item.quantity);
                     
-                    priceElement.innerHTML = `最优: ${priceCalc.averagePrice.toLocaleString()} | 最低: ${priceCalc.minPrice.toLocaleString()}`;
-                    totalElement.innerHTML = `总价: ${priceCalc.totalCost.toLocaleString()}`;
-                } else if (priceElement && totalElement) {
-                    priceElement.innerHTML = '暂无市场数据';
-                    totalElement.innerHTML = '总价: -';
-                    console.log(`No market data for item ${item.id} (${item.name})`);
-                    console.log('Data structure:', Object.keys(data));
-                    console.log('Has items:', !!data.items);
-                    console.log('Has itemID:', !!data.itemID);
-                    if (data.items) {
-                        console.log('Items keys:', Object.keys(data.items));
-                    }
-                    console.log('Item ID type:', typeof item.id);
-                    console.log('Data ItemID type:', typeof data.itemID);
-                    if (data.items) {
-                        console.log('Items keys:', Object.keys(data.items));
+                    // 检查价格是否有效
+                    if (priceCalc.averagePrice > 0) {
+                        priceElement.innerHTML = `最优: ${priceCalc.averagePrice.toLocaleString()} | 最低: ${priceCalc.minPrice.toLocaleString()}`;
+                        priceElement.className = 'text-xs text-blue-600';
+                        totalElement.innerHTML = `总价: ${priceCalc.totalCost.toLocaleString()}`;
+                        totalElement.className = 'text-xs text-green-600';
+                    } else {
+                        priceElement.innerHTML = '暂无市场数据';
+                        priceElement.className = 'text-xs text-gray-500';
+                        totalElement.innerHTML = '总价: -';
+                        totalElement.className = 'text-xs text-gray-500';
                     }
                 } else {
-                    console.log(`DOM elements not found for item ${item.id}`);
+                    console.log(`No market data for item ${item.id} (${item.name})`);
+                    console.log('Response structure analysis:', {
+                        hasItems: !!data.items,
+                        hasItemID: !!data.itemID,
+                        responseItemID: data.itemID,
+                        targetItemID: item.id,
+                        itemIdType: typeof item.id,
+                        responseKeys: Object.keys(data)
+                    });
+                    
+                    if (data.items) {
+                        console.log('Items keys:', Object.keys(data.items));
+                        console.log('Looking for keys:', [item.id, item.id.toString()]);
+                    }
+                    
+                    if (priceElement && totalElement) {
+                        priceElement.innerHTML = '数据加载失败';
+                        priceElement.className = 'text-xs text-red-500';
+                        totalElement.innerHTML = '总价: -';
+                        totalElement.className = 'text-xs text-gray-500';
+                    }
+                }
+            });
+        } else {
+            console.error(`API request failed with status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            
+            // 显示API错误
+            craftingList.forEach(item => {
+                const priceElement = document.getElementById(`price-${item.id}`);
+                const totalElement = document.getElementById(`total-${item.id}`);
+                if (priceElement) {
+                    priceElement.innerHTML = `API错误 (${response.status})`;
+                    priceElement.className = 'text-xs text-red-500';
+                }
+                if (totalElement) {
+                    totalElement.innerHTML = '总价: -';
+                    totalElement.className = 'text-xs text-gray-500';
                 }
             });
         }
@@ -527,10 +524,90 @@ async function loadCraftingListPrices() {
         craftingList.forEach(item => {
             const priceElement = document.getElementById(`price-${item.id}`);
             const totalElement = document.getElementById(`total-${item.id}`);
-            if (priceElement) priceElement.innerHTML = '价格加载失败';
-            if (totalElement) totalElement.innerHTML = '总价: -';
+            if (priceElement) {
+                priceElement.innerHTML = '网络请求失败';
+                priceElement.className = 'text-xs text-red-500';
+            }
+            if (totalElement) {
+                totalElement.innerHTML = '总价: -';
+                totalElement.className = 'text-xs text-gray-500';
+            }
         });
     }
+}
+
+// 改进的价格计算函数，更好地处理缺失数据
+function calculateOptimalPrice(marketData, requiredQuantity) {
+    // 检查数据有效性
+    if (!marketData) {
+        return { averagePrice: 0, totalCost: 0, minPrice: 0 };
+    }
+    
+    // 获取基础价格信息
+    const currentAvgPrice = marketData.currentAveragePrice || 0;
+    const minPrice = marketData.minPrice || 0;
+    const maxPrice = marketData.maxPrice || 0;
+    
+    console.log(`Price calculation for quantity ${requiredQuantity}:`, {
+        currentAvgPrice,
+        minPrice,
+        maxPrice,
+        hasListings: !!marketData.listings,
+        listingsCount: marketData.listings?.length || 0
+    });
+    
+    // 如果没有在售商品，使用历史平均价格
+    if (!marketData.listings || marketData.listings.length === 0) {
+        const fallbackPrice = currentAvgPrice || minPrice || 0;
+        return {
+            averagePrice: fallbackPrice,
+            totalCost: fallbackPrice * requiredQuantity,
+            minPrice: minPrice || fallbackPrice
+        };
+    }
+
+    // 过滤并排序在售商品
+    const validListings = marketData.listings
+        .filter(listing => listing && listing.pricePerUnit > 0)
+        .sort((a, b) => a.pricePerUnit - b.pricePerUnit);
+
+    if (validListings.length === 0) {
+        const fallbackPrice = currentAvgPrice || minPrice || 0;
+        return {
+            averagePrice: fallbackPrice,
+            totalCost: fallbackPrice * requiredQuantity,
+            minPrice: minPrice || fallbackPrice
+        };
+    }
+
+    // 计算最优购买策略
+    let remainingQuantity = requiredQuantity;
+    let totalCost = 0;
+
+    for (const listing of validListings) {
+        if (remainingQuantity <= 0) break;
+
+        const quantityToBuy = Math.min(remainingQuantity, listing.quantity || 1);
+        const cost = quantityToBuy * listing.pricePerUnit;
+        
+        totalCost += cost;
+        remainingQuantity -= quantityToBuy;
+    }
+
+    // 如果仍需更多物品，使用最高价格
+    if (remainingQuantity > 0) {
+        const highestPrice = validListings[validListings.length - 1].pricePerUnit;
+        totalCost += remainingQuantity * highestPrice;
+    }
+
+    const averagePrice = totalCost / requiredQuantity;
+    const calculatedMinPrice = validListings[0].pricePerUnit;
+
+    return {
+        averagePrice: Math.round(averagePrice * 100) / 100,
+        totalCost: Math.round(totalCost),
+        minPrice: calculatedMinPrice
+    };
 }
 
 // Recipe analysis
