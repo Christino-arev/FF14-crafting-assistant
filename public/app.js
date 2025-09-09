@@ -477,11 +477,15 @@ async function loadCraftingListPrices() {
             craftingList.forEach(item => {
                 // Handle both multi-item response format and single-item response format
                 let marketData = null;
+                
                 if (data.items && data.items[item.id]) {
                     // Multi-item response format: {items: {itemId: data}}
                     marketData = data.items[item.id];
-                } else if (data.itemID == item.id) {
+                } else if (data.itemID && data.itemID == item.id) {
                     // Single-item response format: direct data object
+                    marketData = data;
+                } else if (craftingList.length === 1 && data.itemID) {
+                    // Special case: single item in crafting list, API returns single-item format
                     marketData = data;
                 }
                 
@@ -496,7 +500,7 @@ async function loadCraftingListPrices() {
                 } else if (priceElement && totalElement) {
                     priceElement.innerHTML = '暂无市场数据';
                     totalElement.innerHTML = '总价: -';
-                    console.log(`No market data for item ${item.id} (${item.name})`);
+                    console.log(`No market data for item ${item.id} (${item.name}), data structure:`, Object.keys(data));
                 }
             });
         }
