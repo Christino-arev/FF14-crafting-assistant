@@ -1,7 +1,7 @@
 {
-  "name": "ff14-crafting-assistant-cf",
+  "name": "ff14markethelper",
   "version": "1.0.0",
-  "description": "FF14 Crafting Assistant for Cloudflare Pages/Workers",
+  "description": "FF14 Market Helper for Cloudflare Pages/Workers",
   "main": "functions/api/[[path]].js",
   "scripts": {
     "dev": "wrangler pages dev public --compatibility-date=2024-01-01",
