@@ -402,165 +402,38 @@ function confirmAddItem() {
     hideAddItemModal();
 }
 
-// 修复后的价格加载函数（支持单服 & 数据中心）
-// // 修复后的价格加载函数（支持单服 & 数据中心）
-// async function loadCraftingListPrices() {
-//     console.log(`=== loadCraftingListPrices called with ${craftingList.length} items ===`);
-//     if (craftingList.length === 0) {
-//         console.log('Crafting list is empty, returning');
-//         return;
-//     }
-    
-//     try {
-//         const itemIds = craftingList.map(item => item.id).join(',');
-//         const marketTarget = currentServer;
-//         console.log(`[PriceLoader] Fetching items [${itemIds}] from target: ${marketTarget}`);
-        
-//         const response = await fetch(`https://universalis.app/api/v2/${marketTarget}/${itemIds}`, {
-//             headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
-//         });
-        
-//         if (response.ok) {
-//             const data = await response.json();
-//             console.log(`[PriceLoader] Raw API response:`, data);
-            
-//             craftingList.forEach(item => {
-//                 let marketData = null;
-
-//                 // 判断数据结构
-//                 if (data.items) {
-//                     // 多物品格式
-//                     marketData = data.items[item.id] || data.items[item.id.toString()];
-//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
-//                 } else if (data.itemID) {
-//                     // 单物品（可能是单服，也可能是整个数据中心）
-//                     if (data.itemID === item.id || data.itemID === item.id.toString() ||
-//                         item.id === parseInt(data.itemID)) {
-//                         marketData = data;
-//                         marketData.isDatacenter = !data.worldName;
-//                     }
-//                 } else if (craftingList.length === 1) {
-//                     marketData = data;
-//                     marketData.isDatacenter = !data.worldName;
-//                 } else if (data[item.id]) {
-//                     marketData = data[item.id];
-//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
-//                 } else if (data[item.id.toString()]) {
-//                     marketData = data[item.id.toString()];
-//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
-//                 }
-                
-//                 const priceElement = document.getElementById(`price-${item.id}`);
-//                 const totalElement = document.getElementById(`total-${item.id}`);
-                
-//                 if (marketData && priceElement && totalElement) {
-//                     console.log(`[PriceLoader] ✅ Item ${item.id} (${item.name}) data found. isDatacenter=${marketData.isDatacenter}`);
-//                     console.log(`[PriceLoader] Structure:`, {
-//                         hasListings: !!marketData.listings,
-//                         listingsCount: marketData.listings?.length || 0,
-//                         currentAveragePrice: marketData.currentAveragePrice,
-//                         minPrice: marketData.minPrice,
-//                         maxPrice: marketData.maxPrice
-//                     });
-                    
-//                     const priceCalc = calculateOptimalPrice(marketData, item.quantity);
-                    
-//                     if (priceCalc.averagePrice > 0) {
-//                         priceElement.innerHTML = `最优: ${priceCalc.averagePrice.toLocaleString()} | 最低: ${priceCalc.minPrice.toLocaleString()}`;
-//                         priceElement.className = 'text-xs text-blue-600';
-//                         totalElement.innerHTML = `总价: ${priceCalc.totalCost.toLocaleString()}`;
-//                         totalElement.className = 'text-xs text-green-600';
-//                         console.log(`[PriceLoader] 💰 Final price for ${item.name}: avg=${priceCalc.averagePrice}, min=${priceCalc.minPrice}, total=${priceCalc.totalCost}`);
-
-//                     } else {
-//                         priceElement.innerHTML = '暂无市场数据';
-//                         priceElement.className = 'text-xs text-gray-500';
-//                         totalElement.innerHTML = '总价: -';
-//                         totalElement.className = 'text-xs text-gray-500';
-//                         console.warn(`[PriceLoader] ⚠️ No valid price calculated for ${item.name}`);
-//                     }
-//                 } else {
-//                     console.error(`[PriceLoader] ❌ No market data found for item ${item.id} (${item.name})`);
-//                     if (priceElement && totalElement) {
-//                         priceElement.innerHTML = '数据加载失败';
-//                         priceElement.className = 'text-xs text-red-500';
-//                         totalElement.innerHTML = '总价: -';
-//                         totalElement.className = 'text-xs text-gray-500';
-//                     }
-//                 }
-//             });
-//         } else {
-//             console.error(`[PriceLoader] API request failed with status: ${response.status}`);
-//             const errorText = await response.text();
-//             console.error('[PriceLoader] Error response:', errorText);
-            
-//             craftingList.forEach(item => {
-//                 const priceElement = document.getElementById(`price-${item.id}`);
-//                 const totalElement = document.getElementById(`total-${item.id}`);
-//                 if (priceElement) {
-//                     priceElement.innerHTML = `API错误 (${response.status})`;
-//                     priceElement.className = 'text-xs text-red-500';
-//                 }
-//                 if (totalElement) {
-//                     totalElement.innerHTML = '总价: -';
-//                     totalElement.className = 'text-xs text-gray-500';
-//                 }
-//             });
-//         }
-//     } catch (error) {
-//         console.error('[PriceLoader] Failed to load market prices:', error);
-//         craftingList.forEach(item => {
-//             const priceElement = document.getElementById(`price-${item.id}`);
-//             const totalElement = document.getElementById(`total-${item.id}`);
-//             if (priceElement) {
-//                 priceElement.innerHTML = '网络请求失败';
-//                 priceElement.className = 'text-xs text-red-500';
-//             }
-//             if (totalElement) {
-//                 totalElement.innerHTML = '总价: -';
-//                 totalElement.className = 'text-xs text-gray-500';
-//             }
-//         });
-//     }
-// }
 
 // 修复后的价格加载函数（支持单服 & 数据中心）
 async function loadCraftingListPrices() {
     console.log(`=== loadCraftingListPrices called with ${craftingList.length} items ===`);
-    
     if (craftingList.length === 0) {
         console.log('Crafting list is empty, returning');
         return;
     }
-
+    
     try {
-        // 获取所有物品ID
         const itemIds = craftingList.map(item => item.id).join(',');
         const marketTarget = currentServer;
-        
         console.log(`[PriceLoader] Fetching items [${itemIds}] from target: ${marketTarget}`);
-
+        
         const response = await fetch(`https://universalis.app/api/v2/${marketTarget}/${itemIds}`, {
             headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
         });
-
+        
         if (response.ok) {
             const data = await response.json();
-            console.log(`[PriceLoader] Raw API response:`);
-            console.log(data); // 显示原始数据供调试
-
-            // 用于收集处理结果，方便输出统一日志
-            const logEntries = [];
-
+            console.log(`[PriceLoader] Raw API response:`, data);
+            
             craftingList.forEach(item => {
                 let marketData = null;
 
-                // 多物品或单物品结构判别逻辑
+                // 判断数据结构
                 if (data.items) {
+                    // 多物品格式
                     marketData = data.items[item.id] || data.items[item.id.toString()];
                     if (marketData) marketData.isDatacenter = !marketData.worldName;
-                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                 } else if (data.itemID) {
+                    // 单物品（可能是单服，也可能是整个数据中心）
                     if (data.itemID === item.id || data.itemID === item.id.toString() ||
                         item.id === parseInt(data.itemID)) {
                         marketData = data;
@@ -569,121 +442,61 @@ async function loadCraftingListPrices() {
                 } else if (craftingList.length === 1) {
                     marketData = data;
                     marketData.isDatacenter = !data.worldName;
-                    marketData.isDatacenter = !data.worldName;
                 } else if (data[item.id]) {
                     marketData = data[item.id];
-                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                     if (marketData) marketData.isDatacenter = !marketData.worldName;
                 } else if (data[item.id.toString()]) {
                     marketData = data[item.id.toString()];
                     if (marketData) marketData.isDatacenter = !marketData.worldName;
-                    if (marketData) marketData.isDatacenter = !marketData.worldName;
                 }
-
+                
                 const priceElement = document.getElementById(`price-${item.id}`);
                 const totalElement = document.getElementById(`total-${item.id}`);
-
-                // 创建日志条目
-                const logEntry = {
-                    itemId: item.id,
-                    itemName: item.name,
-                    server: marketTarget,
-                    isDatacenter: undefined,
-                    foundData: false,
-                    status: 'ERROR'
-                };
-
-                // 检查是否找到市场数据
-                if (marketData) {
-                    logEntry.foundData = true;
-                    logEntry.isDatacenter = marketData.isDatacenter;
-                    logEntry.listingsInfo = {
+                
+                if (marketData && priceElement && totalElement) {
+                    console.log(`[PriceLoader] ✅ Item ${item.id} (${item.name}) data found. isDatacenter=${marketData.isDatacenter}`);
+                    console.log(`[PriceLoader] Structure:`, {
                         hasListings: !!marketData.listings,
                         listingsCount: marketData.listings?.length || 0,
                         currentAveragePrice: marketData.currentAveragePrice,
                         minPrice: marketData.minPrice,
                         maxPrice: marketData.maxPrice
-                    };
-                }
-
-                // 如果找到市场数据并且DOM元素存在
-                if (marketData && priceElement && totalElement) {
-                    console.log(`[PriceLoader] ✅ Processing item ${item.id} (${item.name})`);
-
-                    // 记录详细信息
-                    console.log(`[PriceLoader] Market Data Type: ${(marketData.isDatacenter ? 'Datacenter' : 'Single Server')}`);
-                    console.log(`[PriceLoader] Listings Count: ${marketData.listings?.length || 0}`);
-
-                    // 计算价格
+                    });
+                    
                     const priceCalc = calculateOptimalPrice(marketData, item.quantity);
-
+                    
                     if (priceCalc.averagePrice > 0) {
-                        // 更新DOM元素
                         priceElement.innerHTML = `最优: ${priceCalc.averagePrice.toLocaleString()} | 最低: ${priceCalc.minPrice.toLocaleString()}`;
                         priceElement.className = 'text-xs text-blue-600';
                         totalElement.innerHTML = `总价: ${priceCalc.totalCost.toLocaleString()}`;
                         totalElement.className = 'text-xs text-green-600';
-                        
-                        logEntry.status = 'SUCCESS';
-                        logEntry.finalPrice = priceCalc;
-                        
                         console.log(`[PriceLoader] 💰 Final price for ${item.name}: avg=${priceCalc.averagePrice}, min=${priceCalc.minPrice}, total=${priceCalc.totalCost}`);
+
                     } else {
                         priceElement.innerHTML = '暂无市场数据';
                         priceElement.className = 'text-xs text-gray-500';
                         totalElement.innerHTML = '总价: -';
                         totalElement.className = 'text-xs text-gray-500';
-                        
-                        logEntry.status = 'NO_DATA';
                         console.warn(`[PriceLoader] ⚠️ No valid price calculated for ${item.name}`);
                     }
                 } else {
-                    // 错误情况下也要处理DOM
-                    if (priceElement) {
-                        priceElement.innerHTML = marketData ? '数据加载失败' : '暂无市场数据';
+                    console.error(`[PriceLoader] ❌ No market data found for item ${item.id} (${item.name})`);
+                    if (priceElement && totalElement) {
+                        priceElement.innerHTML = '数据加载失败';
                         priceElement.className = 'text-xs text-red-500';
-                    }
-                    if (totalElement) {
                         totalElement.innerHTML = '总价: -';
                         totalElement.className = 'text-xs text-gray-500';
                     }
-                    
-                    logEntry.status = 'ERROR';
-                    if (!marketData) {
-                        console.error(`[PriceLoader] ❌ No market data found for item ${item.id} (${item.name})`);
-                    }
-                    if (!priceElement || !totalElement) {
-                        console.error(`[PriceLoader] ❌ DOM elements not found for item ${item.id} (${item.name})`);
-                    }
-                }
-
-                // 添加当前项日志
-                logEntries.push(logEntry);
-            });
-
-            // 统一组输出日志
-            console.group("📋 Price Loading Summary");
-            logEntries.forEach(entry => {
-                const statusColor = entry.status === 'SUCCESS' ? '✅' : 
-                                  entry.status === 'NO_DATA' ? '⚠️' : '❌';
-                console.log(`${statusColor} ${entry.itemName} (#${entry.itemId}) - ${entry.status}`);
-                if (entry.finalPrice) {
-                    console.log(`   Price: avg=${entry.finalPrice.averagePrice}, min=${entry.finalPrice.minPrice}, total=${entry.finalPrice.totalCost}`);
                 }
             });
-            console.groupEnd();
-
         } else {
-            console.error(`[PriceLoader] API request failed with status: ${response.status}`);
             console.error(`[PriceLoader] API request failed with status: ${response.status}`);
             const errorText = await response.text();
             console.error('[PriceLoader] Error response:', errorText);
-
-            // 错误处理：给所有商品设置错误状态
+            
             craftingList.forEach(item => {
                 const priceElement = document.getElementById(`price-${item.id}`);
                 const totalElement = document.getElementById(`total-${item.id}`);
-                
                 if (priceElement) {
                     priceElement.innerHTML = `API错误 (${response.status})`;
                     priceElement.className = 'text-xs text-red-500';
@@ -696,12 +509,9 @@ async function loadCraftingListPrices() {
         }
     } catch (error) {
         console.error('[PriceLoader] Failed to load market prices:', error);
-        
-        // 发生异常时也要更新所有商品的状态
         craftingList.forEach(item => {
             const priceElement = document.getElementById(`price-${item.id}`);
             const totalElement = document.getElementById(`total-${item.id}`);
-            
             if (priceElement) {
                 priceElement.innerHTML = '网络请求失败';
                 priceElement.className = 'text-xs text-red-500';
@@ -713,6 +523,196 @@ async function loadCraftingListPrices() {
         });
     }
 }
+
+// // 修复后的价格加载函数（支持单服 & 数据中心）
+// async function loadCraftingListPrices() {
+//     console.log(`=== loadCraftingListPrices called with ${craftingList.length} items ===`);
+    
+//     if (craftingList.length === 0) {
+//         console.log('Crafting list is empty, returning');
+//         return;
+//     }
+
+//     try {
+//         // 获取所有物品ID
+//         const itemIds = craftingList.map(item => item.id).join(',');
+//         const marketTarget = currentServer;
+        
+//         console.log(`[PriceLoader] Fetching items [${itemIds}] from target: ${marketTarget}`);
+
+//         const response = await fetch(`https://universalis.app/api/v2/${marketTarget}/${itemIds}`, {
+//             headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
+//         });
+
+//         if (response.ok) {
+//             const data = await response.json();
+//             console.log(`[PriceLoader] Raw API response:`);
+//             console.log(data); // 显示原始数据供调试
+
+//             // 用于收集处理结果，方便输出统一日志
+//             const logEntries = [];
+
+//             craftingList.forEach(item => {
+//                 let marketData = null;
+
+//                 // 多物品或单物品结构判别逻辑
+//                 if (data.items) {
+//                     marketData = data.items[item.id] || data.items[item.id.toString()];
+//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+//                 } else if (data.itemID) {
+//                     if (data.itemID === item.id || data.itemID === item.id.toString() ||
+//                         item.id === parseInt(data.itemID)) {
+//                         marketData = data;
+//                         marketData.isDatacenter = !data.worldName;
+//                     }
+//                 } else if (craftingList.length === 1) {
+//                     marketData = data;
+//                     marketData.isDatacenter = !data.worldName;
+//                     marketData.isDatacenter = !data.worldName;
+//                 } else if (data[item.id]) {
+//                     marketData = data[item.id];
+//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+//                 } else if (data[item.id.toString()]) {
+//                     marketData = data[item.id.toString()];
+//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+//                     if (marketData) marketData.isDatacenter = !marketData.worldName;
+//                 }
+
+//                 const priceElement = document.getElementById(`price-${item.id}`);
+//                 const totalElement = document.getElementById(`total-${item.id}`);
+
+//                 // 创建日志条目
+//                 const logEntry = {
+//                     itemId: item.id,
+//                     itemName: item.name,
+//                     server: marketTarget,
+//                     isDatacenter: undefined,
+//                     foundData: false,
+//                     status: 'ERROR'
+//                 };
+
+//                 // 检查是否找到市场数据
+//                 if (marketData) {
+//                     logEntry.foundData = true;
+//                     logEntry.isDatacenter = marketData.isDatacenter;
+//                     logEntry.listingsInfo = {
+//                         hasListings: !!marketData.listings,
+//                         listingsCount: marketData.listings?.length || 0,
+//                         currentAveragePrice: marketData.currentAveragePrice,
+//                         minPrice: marketData.minPrice,
+//                         maxPrice: marketData.maxPrice
+//                     };
+//                 }
+
+//                 // 如果找到市场数据并且DOM元素存在
+//                 if (marketData && priceElement && totalElement) {
+//                     console.log(`[PriceLoader] ✅ Processing item ${item.id} (${item.name})`);
+
+//                     // 记录详细信息
+//                     console.log(`[PriceLoader] Market Data Type: ${(marketData.isDatacenter ? 'Datacenter' : 'Single Server')}`);
+//                     console.log(`[PriceLoader] Listings Count: ${marketData.listings?.length || 0}`);
+
+//                     // 计算价格
+//                     const priceCalc = calculateOptimalPrice(marketData, item.quantity);
+
+//                     if (priceCalc.averagePrice > 0) {
+//                         // 更新DOM元素
+//                         priceElement.innerHTML = `最优: ${priceCalc.averagePrice.toLocaleString()} | 最低: ${priceCalc.minPrice.toLocaleString()}`;
+//                         priceElement.className = 'text-xs text-blue-600';
+//                         totalElement.innerHTML = `总价: ${priceCalc.totalCost.toLocaleString()}`;
+//                         totalElement.className = 'text-xs text-green-600';
+                        
+//                         logEntry.status = 'SUCCESS';
+//                         logEntry.finalPrice = priceCalc;
+                        
+//                         console.log(`[PriceLoader] 💰 Final price for ${item.name}: avg=${priceCalc.averagePrice}, min=${priceCalc.minPrice}, total=${priceCalc.totalCost}`);
+//                     } else {
+//                         priceElement.innerHTML = '暂无市场数据';
+//                         priceElement.className = 'text-xs text-gray-500';
+//                         totalElement.innerHTML = '总价: -';
+//                         totalElement.className = 'text-xs text-gray-500';
+                        
+//                         logEntry.status = 'NO_DATA';
+//                         console.warn(`[PriceLoader] ⚠️ No valid price calculated for ${item.name}`);
+//                     }
+//                 } else {
+//                     // 错误情况下也要处理DOM
+//                     if (priceElement) {
+//                         priceElement.innerHTML = marketData ? '数据加载失败' : '暂无市场数据';
+//                         priceElement.className = 'text-xs text-red-500';
+//                     }
+//                     if (totalElement) {
+//                         totalElement.innerHTML = '总价: -';
+//                         totalElement.className = 'text-xs text-gray-500';
+//                     }
+                    
+//                     logEntry.status = 'ERROR';
+//                     if (!marketData) {
+//                         console.error(`[PriceLoader] ❌ No market data found for item ${item.id} (${item.name})`);
+//                     }
+//                     if (!priceElement || !totalElement) {
+//                         console.error(`[PriceLoader] ❌ DOM elements not found for item ${item.id} (${item.name})`);
+//                     }
+//                 }
+
+//                 // 添加当前项日志
+//                 logEntries.push(logEntry);
+//             });
+
+//             // 统一组输出日志
+//             console.group("📋 Price Loading Summary");
+//             logEntries.forEach(entry => {
+//                 const statusColor = entry.status === 'SUCCESS' ? '✅' : 
+//                                   entry.status === 'NO_DATA' ? '⚠️' : '❌';
+//                 console.log(`${statusColor} ${entry.itemName} (#${entry.itemId}) - ${entry.status}`);
+//                 if (entry.finalPrice) {
+//                     console.log(`   Price: avg=${entry.finalPrice.averagePrice}, min=${entry.finalPrice.minPrice}, total=${entry.finalPrice.totalCost}`);
+//                 }
+//             });
+//             console.groupEnd();
+
+//         } else {
+//             console.error(`[PriceLoader] API request failed with status: ${response.status}`);
+//             console.error(`[PriceLoader] API request failed with status: ${response.status}`);
+//             const errorText = await response.text();
+//             console.error('[PriceLoader] Error response:', errorText);
+
+//             // 错误处理：给所有商品设置错误状态
+//             craftingList.forEach(item => {
+//                 const priceElement = document.getElementById(`price-${item.id}`);
+//                 const totalElement = document.getElementById(`total-${item.id}`);
+                
+//                 if (priceElement) {
+//                     priceElement.innerHTML = `API错误 (${response.status})`;
+//                     priceElement.className = 'text-xs text-red-500';
+//                 }
+//                 if (totalElement) {
+//                     totalElement.innerHTML = '总价: -';
+//                     totalElement.className = 'text-xs text-gray-500';
+//                 }
+//             });
+//         }
+//     } catch (error) {
+//         console.error('[PriceLoader] Failed to load market prices:', error);
+        
+//         // 发生异常时也要更新所有商品的状态
+//         craftingList.forEach(item => {
+//             const priceElement = document.getElementById(`price-${item.id}`);
+//             const totalElement = document.getElementById(`total-${item.id}`);
+            
+//             if (priceElement) {
+//                 priceElement.innerHTML = '网络请求失败';
+//                 priceElement.className = 'text-xs text-red-500';
+//             }
+//             if (totalElement) {
+//                 totalElement.innerHTML = '总价: -';
+//                 totalElement.className = 'text-xs text-gray-500';
+//             }
+//         });
+//     }
+// }
 
 
 // function calculateOptimalPrice(marketData, requiredQuantity) {
