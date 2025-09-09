@@ -151,13 +151,19 @@ async function handleServers(request, env) {
             if (data && data.data) {
                 // Transform the API response to our format
                 const servers = {};
+                const datacenters = {};
+                
                 data.data.forEach(dc => {
-                    servers[dc.name] = dc.worlds.map(world => world.name);
+                    const worldNames = dc.worlds.map(world => world.name);
+                    servers[dc.name] = worldNames;
+                    // Add datacenter as a selectable option
+                    datacenters[dc.name] = dc.name;
                 });
 
                 return new Response(JSON.stringify({
                     success: true,
                     servers: servers,
+                    datacenters: datacenters,
                     default_server: "HongYuHai"
                 }), {
                     headers: { 'Content-Type': 'application/json' }
@@ -170,25 +176,44 @@ async function handleServers(request, env) {
 
     // Fallback to static server list
     const servers = {
-        "陆行鸟": ["HongYuHai", "ShenYiZhiDi", "LaNuoXiYa", "HuanYingQunDao", "MengYaChi", "YuZhouHeYin", "WoXianXiRan", "ChenXiWangZuo"],
-        "莫古力": ["BaiYinXiang", "BaiJinHuanXiang", "ShenQuanHen", "ChaoFengTing", "LvRenZhanQiao", "FuXiaoZhiJian", "Longchaoshendian", "MengYuBaoJing"],
-        "猫小胖": ["ZiShuiZhanQiao", "YanXia", "JingYuZhuangYuan", "MoDuNa", "HaiMaoChaWu", "RouFengHaiWan", "HuPoYuan"],
-        "豆豆柴": ["ShuiJingTa2", "YinLeiHu2", "TaiYangHaiAn2", "YiXiuJiaDe2", "HongChaChuan2"],
-        "Aether": ["Adamantoise", "Cactuar", "Faerie", "Gilgamesh", "Jenova", "Midgardsormr", "Sargatanas", "Siren"],
-        "Crystal": ["Balmung", "Brynhildr", "Coeurl", "Diabolos", "Goblin", "Malboro", "Mateus", "Zalera"],
-        "Primal": ["Behemoth", "Excalibur", "Exodus", "Famfrit", "Hyperion", "Lamia", "Leviathan", "Ultros"],
-        "Dynamis": ["Halicarnassus", "Maduin", "Marilith", "Seraph"],
-        "Elemental": ["Aegis", "Atomos", "Carbuncle", "Garuda", "Gungnir", "Kujata", "Tonberry", "Typhon"],
-        "Gaia": ["Alexander", "Bahamut", "Durandal", "Fenrir", "Ifrit", "Ridill", "Tiamat", "Ultima"],
-        "Light": ["Alpha", "Lich", "Odin", "Phoenix", "Raiden", "Shiva", "Twintania", "Zodiark"],
-        "Mana": ["Anima", "Asura", "Chocobo", "Hades", "Ixion", "Masamune", "Pandaemonium", "Titan"],
-        "Materia": ["Bismarck", "Ravana", "Sephirot", "Sophia", "Zurvan"],
-        "Meteor": ["Belias", "Mandragora", "Ramuh", "Shinryu", "Unicorn", "Valefor", "Yojimbo", "Zeromus"]
+        "陆行鸟": ["陆行鸟", "HongYuHai", "ShenYiZhiDi", "LaNuoXiYa", "HuanYingQunDao", "MengYaChi", "YuZhouHeYin", "WoXianXiRan", "ChenXiWangZuo"],
+        "莫古力": ["莫古力", "BaiYinXiang", "BaiJinHuanXiang", "ShenQuanHen", "ChaoFengTing", "LvRenZhanQiao", "FuXiaoZhiJian", "Longchaoshendian", "MengYuBaoJing"],
+        "猫小胖": ["猫小胖", "ZiShuiZhanQiao", "YanXia", "JingYuZhuangYuan", "MoDuNa", "HaiMaoChaWu", "RouFengHaiWan", "HuPoYuan"],
+        "豆豆柴": ["豆豆柴", "ShuiJingTa2", "YinLeiHu2", "TaiYangHaiAn2", "YiXiuJiaDe2", "HongChaChuan2"],
+        "Aether": ["Aether", "Adamantoise", "Cactuar", "Faerie", "Gilgamesh", "Jenova", "Midgardsormr", "Sargatanas", "Siren"],
+        "Crystal": ["Crystal", "Balmung", "Brynhildr", "Coeurl", "Diabolos", "Goblin", "Malboro", "Mateus", "Zalera"],
+        "Primal": ["Primal", "Behemoth", "Excalibur", "Exodus", "Famfrit", "Hyperion", "Lamia", "Leviathan", "Ultros"],
+        "Dynamis": ["Dynamis", "Halicarnassus", "Maduin", "Marilith", "Seraph"],
+        "Elemental": ["Elemental", "Aegis", "Atomos", "Carbuncle", "Garuda", "Gungnir", "Kujata", "Tonberry", "Typhon"],
+        "Gaia": ["Gaia", "Alexander", "Bahamut", "Durandal", "Fenrir", "Ifrit", "Ridill", "Tiamat", "Ultima"],
+        "Light": ["Light", "Alpha", "Lich", "Odin", "Phoenix", "Raiden", "Shiva", "Twintania", "Zodiark"],
+        "Mana": ["Mana", "Anima", "Asura", "Chocobo", "Hades", "Ixion", "Masamune", "Pandaemonium", "Titan"],
+        "Materia": ["Materia", "Bismarck", "Ravana", "Sephirot", "Sophia", "Zurvan"],
+        "Meteor": ["Meteor", "Belias", "Mandragora", "Ramuh", "Shinryu", "Unicorn", "Valefor", "Yojimbo", "Zeromus"]
+    };
+
+    // Create datacenter mapping for Chinese servers
+    const datacenters = {
+        "陆行鸟": "陆行鸟",
+        "莫古力": "莫古力", 
+        "猫小胖": "猫小胖",
+        "豆豆柴": "豆豆柴",
+        "Aether": "Aether",
+        "Crystal": "Crystal",
+        "Primal": "Primal",
+        "Dynamis": "Dynamis",
+        "Elemental": "Elemental",
+        "Gaia": "Gaia",
+        "Light": "Light",
+        "Mana": "Mana",
+        "Materia": "Materia",
+        "Meteor": "Meteor"
     };
 
     return new Response(JSON.stringify({
         success: true,
         servers: servers,
+        datacenters: datacenters,
         default_server: "HongYuHai"
     }), {
         headers: { 'Content-Type': 'application/json' }
@@ -270,14 +295,20 @@ async function handleItemDetails(request, env) {
         // Get market data from Universalis
         let marketData = null;
         try {
+            // Support both individual servers and datacenters
             const marketResponse = await fetch(`https://universalis.app/api/v2/${server}/${itemId}`, {
                 headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
             });
 
             if (marketResponse.ok) {
                 const market = await marketResponse.json();
+                
+                // Determine if this is datacenter data or server data
+                const isDatacenter = ['陆行鸟', '莫古力', '猫小胖', '豆豆柴', 'Aether', 'Crystal', 'Primal', 'Dynamis', 'Elemental', 'Gaia', 'Light', 'Mana', 'Materia', 'Meteor'].includes(server);
+                
                 marketData = {
                     server: server,
+                    is_datacenter: isDatacenter,
                     average_price: market.currentAveragePrice || 0,
                     average_price_nq: market.currentAveragePriceNQ || 0,
                     average_price_hq: market.currentAveragePriceHQ || 0,
@@ -296,7 +327,8 @@ async function handleItemDetails(request, env) {
                         quantity: sale.quantity,
                         hq: sale.hq,
                         timestamp: new Date(sale.timestamp * 1000).toISOString(),
-                        buyer: sale.buyerName
+                        buyer: sale.buyerName,
+                        world: sale.worldName
                     })) || [],
                     listings_count: market.listings?.length || 0
                 };
@@ -520,6 +552,7 @@ async function handleAnalyzeCraftingList(request, env) {
         if (materials.length > 0) {
             try {
                 const materialIds = materials.map(m => m.id).join(',');
+                // Support both individual servers and datacenters
                 const marketResponse = await fetch(`https://universalis.app/api/v2/${server}/${materialIds}`, {
                     headers: { 'User-Agent': 'FF14CraftingAssistant/1.0' }
                 });
